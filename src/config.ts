@@ -1,0 +1,125 @@
+/**
+ * Pure parsing of the abbreviations config note and link rewriting.
+ * Nothing in here touches the Obsidian API, so it can be tested in plain Node.
+ */
+
+export interface ConfigEntry {
+	abbreviation: string;
+	expansion: string;
+	enabled: boolean;
+	line: number; // 1-based, for warnings
+}
+
+export interface ParseResult {
+	entries: ConfigEntry[];
+	warnings: string[];
+}
+
+const ITEM = /^\s*[-*+]\s+(.*?)\s*$/;
+const FENCE = /^\s*(```|~~~)/;
+const STRUCK = /^~~(.*)~~$/;
+const SEPARATOR = ': ';
+
+/**
+ * Every list item `abbr: expansion` is an abbreviation; everything else in the
+ * note (frontmatter, headings, prose, code blocks) is ignored. An item wrapped
+ * in `~~strikethrough~~` is disabled.
+ */
+export function parseConfig(text: string): ParseResult {
+	const entries: ConfigEntry[] = [];
+	const warnings: string[] = [];
+	const lines = text.split(/\r?\n/);
+
+	let i = 0;
+	if (lines[0] === '---') {
+		const end = lines.indexOf('---', 1);
+		if (end > 0) i = end + 1;
+	}
+
+	let inFence = false;
+	for (; i < lines.length; i++) {
+		const line = lines[i];
+		if (FENCE.test(line)) {
+			inFence = !inFence;
+			continue;
+		}
+		if (inFence) continue;
+
+		const item = ITEM.exec(line);
+		if (!item) continue;
+
+		let body = item[1];
+		let enabled = true;
+		const struck = STRUCK.exec(body);
+		if (struck) {
+			body = struck[1];
+			enabled = false;
+		}
+
+		const sep = body.indexOf(SEPARATOR);
+		if (sep < 0) continue; // a plain list item, not an entry
+
+		const abbreviation = body.slice(0, sep).trim();
+		const expansion = body.slice(sep + SEPARATOR.length).trim();
+		if (!abbreviation || /\s/.test(abbreviation)) {
+			warnings.push(`line ${i + 1}: abbreviation "${abbreviation}" must be one word`);
+			continue;
+		}
+		if (!expansion) {
+			warnings.push(`line ${i + 1}: "${abbreviation}" has an empty expansion`);
+			continue;
+		}
+		entries.push({ abbreviation, expansion, enabled, line: i + 1 });
+	}
+
+	return { entries, warnings };
+}
+
+/**
+ * Builds the replacement for one link found in an expansion, or returns null to
+ * keep the link exactly as written (unresolvable or external).
+ *
+ * @param linkpath target as written, without `#subpath`, already URL-decoded
+ * @param subpath  `#heading` / `#^block` including the `#`, or ''
+ * @param alias    display text, if the link had any
+ * @param embed    whether the link was an embed (`![[...]]` / `![...](...)`)
+ */
+export type Relinker = (
+	linkpath: string,
+	subpath: string,
+	alias: string | undefined,
+	embed: boolean
+) => string | null;
+
+const LINK = /(!?)\[\[([^\]|]+?)(?:\|([^\]]*))?\]\]|(!?)\[([^\]]*)\]\((<[^>]+>|[^)\s]+)\)/g;
+const URL_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+
+function splitSubpath(target: string): [string, string] {
+	const hash = target.indexOf('#');
+	return hash < 0 ? [target, ''] : [target.slice(0, hash), target.slice(hash)];
+}
+
+function safeDecode(s: string): string {
+	try {
+		return decodeURI(s);
+	} catch {
+		return s;
+	}
+}
+
+/** Rewrites every internal link (wikilink or markdown link) in `expansion`. */
+export function relink(expansion: string, relinker: Relinker): string {
+	return expansion.replace(
+		LINK,
+		(match, wikiEmbed, wikiTarget, wikiAlias, mdEmbed, mdText, mdDest) => {
+			if (wikiTarget !== undefined) {
+				const [linkpath, subpath] = splitSubpath(wikiTarget.trim());
+				return relinker(linkpath, subpath, wikiAlias, wikiEmbed === '!') ?? match;
+			}
+			const dest = mdDest.startsWith('<') ? mdDest.slice(1, -1) : mdDest;
+			if (URL_SCHEME.test(dest)) return match;
+			const [linkpath, subpath] = splitSubpath(safeDecode(dest));
+			return relinker(linkpath, subpath, mdText, mdEmbed === '!') ?? match;
+		}
+	);
+}

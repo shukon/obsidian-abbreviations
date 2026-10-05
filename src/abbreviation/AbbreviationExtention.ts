@@ -2,11 +2,10 @@ import { SelectionRange, Transaction } from '@codemirror/state';
 import { EditorView, PluginValue, ViewUpdate } from '@codemirror/view';
 
 
-import {
-	AbbreviationLocation,
-	AbbreviationPluginSettings,
-	Expansion
-} from '../types';
+import { editorInfoField } from 'obsidian';
+
+import { AbbreviationLocation } from '../types';
+import type AbbreviationPlugin from '../main';
 
 import Devlogger from '../util/Devlogger';
 
@@ -18,7 +17,7 @@ export class AbbreviationExpanderPlugin implements PluginValue {
 
 	constructor(
 		private view: EditorView, 
-		private settings: AbbreviationPluginSettings
+		private plugin: AbbreviationPlugin
 	) {}
 	
 	
@@ -35,15 +34,15 @@ export class AbbreviationExpanderPlugin implements PluginValue {
 	 * 							v cursor 
 	 * > what are you doing atm |
 	 * 
+	 * Matching is always case-sensitive.
+	 * 
 	 * @param document Document
 	 * @param position position of the cursor
-	 * @param abbreviations list of abbreviations
 	 * @returns {AbbreviationLocation | null}
 	 */
 	private detectAbbreviation(
 		editorText: string,
-		position: number, 
-		abbreviations: Record<string, Expansion>
+		position: number
 	): AbbreviationLocation | null {
 		let wordStart = position;
 		
@@ -55,21 +54,14 @@ export class AbbreviationExpanderPlugin implements PluginValue {
 		} while (wordStart > 0);
 		
 		const word = editorText.substring(wordStart, position);
-		const wordAbbrv = Object.keys(this.settings.abbreviations)
-			.find(k => k.toLocaleLowerCase() === word.toLocaleLowerCase())
+		const abbreviation = this.plugin.abbreviations.get(word);
 
-		if (!wordAbbrv) return null;
+		if (!abbreviation) return null;
 
-		const wordEntry = abbreviations[wordAbbrv];
-		const sameCase = word === wordAbbrv;
-		
-		if (word !== "" && wordEntry?.value && (sameCase || !wordEntry.isCaseSensitive))
-			return {
-				startingCharacter: wordStart,
-				abbreviation: this.settings.abbreviations[wordAbbrv]
-			};
-		
-		return null;
+		return {
+			startingCharacter: wordStart,
+			abbreviation
+		};
 	}
 	
 	private isCursor(selection: SelectionRange): boolean {
@@ -98,20 +90,24 @@ export class AbbreviationExpanderPlugin implements PluginValue {
 
 			const abbreviation = this.detectAbbreviation(
 				update.view.state.doc.toString(), 
-				cursorPosition - 1, // we substract one to get the position of the word
-				this.settings.abbreviations
+				cursorPosition - 1 // we substract one to get the position of the word
 			);
 
 			if (!abbreviation) return;
 
-			this.logger.log('found abbreviation:', abbreviation.abbreviation.value);
+			this.logger.log('found abbreviation:', abbreviation.abbreviation.expansion);
+
+			const targetFile = update.view.state.field(editorInfoField, false)?.file ?? null;
+			if (targetFile && this.plugin.isConfigNote(targetFile)) return; // don't expand while editing the config itself
+			const targetPath = targetFile?.path ?? '';
+			const expansion = this.plugin.expand(abbreviation.abbreviation, targetPath);
 
 			requestAnimationFrame(() => { // to defer the dispatch to the next frame
 				update.view.dispatch({
                     changes: {
                         from: abbreviation.startingCharacter,
                         to: cursorPosition,
-                        insert: abbreviation.abbreviation.value + " ",
+                        insert: expansion + " ",
                     },
                 });
 			})

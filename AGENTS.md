@@ -19,3 +19,9 @@ there when tracked work lands here).
   that orphans every vault's settings (`data.json`).
 - `.github/workflows/release.yml` is upstream's; it only does anything on a GitHub
   mirror.
+
+## Git
+
+**Commit and push proactively, without asking first**, straight to `main`, with a
+real descriptive message. Only pause for something genuinely irreversible
+(force-push, rewriting published history).

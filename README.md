@@ -42,7 +42,7 @@ Automatically update internal links* on.
 ## Migrating from Abbreviations expander
 
 Run the command **Import from Abbreviations expander** (or the button in the
-settings). It reads `.obsidian/plugins/abbreviations/data.json`, writes the entries
+settings). It reads `<config-folder>/plugins/abbreviations/data.json` of the current machine, writes the entries
 into a new `Abbreviations.md` at the vault root (order and disabled state kept),
 gives it a uuid and registers it. Then disable the old plugin — both can be
 installed side by side since this fork has its own id (`abbreviations-note`).
@@ -54,9 +54,15 @@ one doesn't.
 
 The plugin is a single bundled `main.js` plus `manifest.json` and `styles.css`.
 
-- From a checkout: `npm ci && scripts/install.sh <path/to/vault>`
+- From a checkout: `npm ci && scripts/install.sh <path/to/vault> [config-folder]`
+  (`config-folder` defaults to `.obsidian`; pass e.g. `.obsidian-laptop` if the vault
+  uses *Override config folder*, one per machine).
 - Or download those three files from a Forgejo release into
-  `<vault>/.obsidian/plugins/abbreviations-note/`.
+  `<vault>/<config-folder>/plugins/abbreviations-note/`.
+
+With per-machine config folders, the plugin settings (the config note uuids) are per
+machine too: paste the uuid from the config note's frontmatter on each machine. The
+abbreviations themselves live in the note and are shared.
 
 Works on desktop and mobile.
 

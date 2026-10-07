@@ -14,10 +14,9 @@ import {
 } from './types';
 
 import { parseConfig, relink } from './config';
-import { AbbreviationExpanderPlugin } from './abbreviation/AbbreviationExtention'
+import { abbreviationInputHandler } from './abbreviation/AbbreviationExtention'
 import Devlogger from './util/Devlogger';
 import SettingsTab from './ui/SettingsTab';
-import { ViewPlugin } from '@codemirror/view';
 
 /** Plugin id of upstream woodenmaiden/obsidian-abbreviations, for the import */
 const UPSTREAM_ID = 'abbreviations';
@@ -51,11 +50,7 @@ export default class AbbreviationPlugin extends Plugin {
 
 		this.addSettingTab(new SettingsTab(this.app, this));
 
-		this.registerEditorExtension([
-			ViewPlugin.define(
-				(view) => new AbbreviationExpanderPlugin(view, this)
-			),
-		])
+		this.registerEditorExtension(abbreviationInputHandler(this));
 
 		this.addCommand({
 			id: 'import-from-abbreviations-expander',

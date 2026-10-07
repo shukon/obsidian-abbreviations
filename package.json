@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-abbreviations-note",
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"description": "Abbreviations expander for Obsidian, configured in a vault note",
 	"main": "main.js",
 	"scripts": {

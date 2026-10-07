@@ -14,8 +14,3 @@ export interface Abbreviation {
 	/** config note the expansion came from; its links resolve relative to it */
 	source: TFile;
 }
-
-export interface AbbreviationLocation {
-	startingCharacter: number;
-	abbreviation: Abbreviation;
-}

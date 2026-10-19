@@ -123,3 +123,24 @@ export function relink(expansion: string, relinker: Relinker): string {
 		}
 	);
 }
+
+/**
+ * Regenerates every resolvable internal link in `expansion` for its target note.
+ * The display text is passed on exactly as written: whether it is redundant
+ * depends on the vault's link format, which only `generate` knows.
+ *
+ * @param resolve  finds the file a link points to, or null to keep the link as is
+ * @param generate builds the new link, as Obsidian's `generateMarkdownLink` does
+ */
+export function expandLinks<F>(
+	expansion: string,
+	resolve: (linkpath: string) => F | null,
+	generate: (file: F, subpath: string | undefined, alias: string | undefined) => string
+): string {
+	return relink(expansion, (linkpath, subpath, alias, embed) => {
+		const file = resolve(linkpath);
+		if (!file) return null;
+		const link = generate(file, subpath || undefined, alias).replace(/^!/, '');
+		return (embed ? '!' : '') + link;
+	});
+}

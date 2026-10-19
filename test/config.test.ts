@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { parseConfig, relink, Relinker } from '../src/config';
+import { expandLinks, parseConfig, relink, Relinker } from '../src/config';
 
 test('parses list items, ignores everything else', () => {
 	const { entries, warnings } = parseConfig([
@@ -49,4 +49,17 @@ test('relink rewrites internal links and keeps the rest', () => {
 		'<img.png|>, [web](https://example.org/a.md), [[missing]] and <a b.md|x>'
 	);
 	assert.deepEqual(calls[3], ['img.png', '', undefined, true]);
+});
+
+test('expandLinks keeps display text equal to the file name', () => {
+	// Fake "absolute path in vault" link format: the link text is the full path.
+	const files: Record<string, { path: string; basename: string }> = {
+		Heimnetz: { path: 'Projekte/Heimnetz', basename: 'Heimnetz' },
+	};
+	const out = expandLinks(
+		'[[Projekte/Heimnetz|Heimnetz]], ![[Heimnetz#Plan]] and [[missing|x]]',
+		(linkpath) => files[linkpath.split('/').pop()!] ?? null,
+		(file, subpath, alias) => `![[${file.path}${subpath ?? ''}${alias === undefined ? '' : `|${alias}`}]]`
+	);
+	assert.equal(out, '[[Projekte/Heimnetz|Heimnetz]], ![[Projekte/Heimnetz#Plan]] and [[missing|x]]');
 });

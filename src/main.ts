@@ -13,7 +13,7 @@ import {
 	DEFAULT_SETTINGS,
 } from './types';
 
-import { parseConfig, relink } from './config';
+import { expandLinks, parseConfig } from './config';
 import { abbreviationInputHandler } from './abbreviation/AbbreviationExtention'
 import Devlogger from './util/Devlogger';
 import SettingsTab from './ui/SettingsTab';
@@ -146,15 +146,12 @@ export default class AbbreviationPlugin extends Plugin {
 	 */
 	expand(abbreviation: Abbreviation, targetPath: string): string {
 		const sourcePath = abbreviation.source.path;
-		return relink(abbreviation.expansion, (linkpath, subpath, alias, embed) => {
-			const file = this.resolveLink(linkpath, sourcePath);
-			if (!file) return null;
-			if (alias === file.basename) alias = undefined;
-			const link = this.app.fileManager
-				.generateMarkdownLink(file, targetPath, subpath || undefined, alias)
-				.replace(/^!/, '');
-			return (embed ? '!' : '') + link;
-		});
+		return expandLinks(
+			abbreviation.expansion,
+			(linkpath) => this.resolveLink(linkpath, sourcePath),
+			(file, subpath, alias) =>
+				this.app.fileManager.generateMarkdownLink(file, targetPath, subpath, alias)
+		);
 	}
 
 	private resolveLink(linkpath: string, sourcePath: string): TFile | null {

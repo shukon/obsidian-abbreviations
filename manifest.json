@@ -1,7 +1,7 @@
 {
 	"id": "abbreviations-note",
 	"name": "Abbreviations from Note",
-	"version": "2.1.0",
+	"version": "2.1.1",
 	"minAppVersion": "1.0.0",
 	"description": "Expand abbreviations after hitting `Space`, with the abbreviations (links included) kept in a note of the vault.",
 	"author": "shk (fork of Yann POMIE's Abbreviations expander)",

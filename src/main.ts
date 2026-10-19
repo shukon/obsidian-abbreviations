@@ -13,13 +13,16 @@ import {
 	DEFAULT_SETTINGS,
 } from './types';
 
-import { expandLinks, parseConfig } from './config';
+import { expandLinks, parseConfig, sortConfig } from './config';
 import { abbreviationInputHandler } from './abbreviation/AbbreviationExtention'
 import Devlogger from './util/Devlogger';
 import SettingsTab from './ui/SettingsTab';
 
 /** Plugin id of upstream woodenmaiden/obsidian-abbreviations, for the import */
 const UPSTREAM_ID = 'abbreviations';
+
+/** a config note edited more recently than this is left unsorted for now */
+const SORT_QUIET_MS = 30_000;
 
 interface UpstreamExpansion {
 	value: string;
@@ -66,6 +69,11 @@ export default class AbbreviationPlugin extends Plugin {
 			id: 'reload',
 			name: 'Reload abbreviations',
 			callback: () => this.reloadConfig(),
+		});
+		this.addCommand({
+			id: 'sort-config-notes',
+			name: 'Sort abbreviations notes',
+			callback: () => this.sortConfigNotes(0),
 		});
 
 		this.app.workspace.onLayoutReady(() => {
@@ -152,6 +160,25 @@ export default class AbbreviationPlugin extends Plugin {
 			(file, subpath, alias) =>
 				this.app.fileManager.generateMarkdownLink(file, targetPath, subpath, alias)
 		);
+	}
+
+	/**
+	 * Sorts the config notes, skipping any edited within the last `quietMs` so a
+	 * note is never reordered while someone is working on it. Runs after every
+	 * expansion: then the typing happens in another note.
+	 */
+	async sortConfigNotes(quietMs = SORT_QUIET_MS) {
+		for (const { file } of this.configNotes) {
+			if (Date.now() - file.stat.mtime < quietMs) continue;
+			if (sortConfig(await this.app.vault.cachedRead(file)) === null) continue;
+			await this.app.vault.process(file, text => sortConfig(text) ?? text);
+			this.logger.log('sorted', file.path);
+		}
+	}
+
+	/** called by the editor extension once an expansion has been inserted */
+	onExpanded() {
+		if (this.settings.sortEntries) window.setTimeout(() => this.sortConfigNotes(), 0);
 	}
 
 	private resolveLink(linkpath: string, sourcePath: string): TFile | null {

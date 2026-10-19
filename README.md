@@ -28,6 +28,11 @@ uuid: 0d6f6c1e-…
 - Strike an item through to disable it.
 - Nothing expands while you type in a config note itself.
 - Changes to the note apply immediately.
+- Entries are kept **sorted alphabetically within each heading section** (setting
+  *Sort entries*, on by default; command *Sort abbreviations notes*). Sorting runs
+  after an expansion, and skips notes edited in the last 30 seconds. Only top-level
+  entries move, together with the indented lines below them; headings, prose, plain
+  list items and code blocks stay put.
 
 ### Links
 
@@ -57,8 +62,21 @@ The plugin is a single bundled `main.js` plus `manifest.json` and `styles.css`.
 - From a checkout: `npm ci && scripts/install.sh <path/to/vault> [config-folder]`
   (`config-folder` defaults to `.obsidian`; pass e.g. `.obsidian-laptop` if the vault
   uses *Override config folder*, one per machine).
-- Or download those three files from a Forgejo release into
-  `<vault>/<config-folder>/plugins/abbreviations-note/`.
+- With [BRAT](https://github.com/TfTHacker/obsidian42-brat): *Add beta plugin* →
+  `shukon/obsidian-abbreviations`. BRAT installs and updates from the GitHub
+  releases of the mirror.
+- Or download those three files from a [GitHub release](https://github.com/shukon/obsidian-abbreviations/releases)
+  into `<vault>/<config-folder>/plugins/abbreviations-note/`.
+
+## Releasing
+
+Forgejo push-mirrors to GitHub (`shukon/obsidian-abbreviations`), where
+`.github/workflows/release.yml` builds a release for every pushed tag:
+
+```sh
+npm version minor   # bumps manifest.json + versions.json, tags without "v" (.npmrc)
+git push --follow-tags
+```
 
 With per-machine config folders, the plugin settings (the config note uuids) are per
 machine too: paste the uuid from the config note's frontmatter on each machine. The

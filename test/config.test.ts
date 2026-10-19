@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { expandLinks, parseConfig, relink, Relinker } from '../src/config';
+import { expandLinks, parseConfig, relink, Relinker, sortConfig } from '../src/config';
 
 test('parses list items, ignores everything else', () => {
 	const { entries, warnings } = parseConfig([
@@ -62,4 +62,51 @@ test('expandLinks keeps display text equal to the file name', () => {
 		(file, subpath, alias) => `![[${file.path}${subpath ?? ''}${alias === undefined ? '' : `|${alias}`}]]`
 	);
 	assert.equal(out, '[[Projekte/Heimnetz|Heimnetz]], ![[Projekte/Heimnetz#Plan]] and [[missing|x]]');
+});
+
+test('sortConfig sorts the entries of each heading section', () => {
+	const note = [
+		'---',
+		'uuid: x',
+		'---',
+		'# Links',
+		'',
+		'Intro prose stays here.',
+		'- wst: [[WanShiTong]]',
+		'- ~~atm: at the moment~~',
+		'\t- a child note of atm',
+		'- a plain item',
+		'- Btw: By the way',
+		'```',
+		'- zz: in a code block',
+		'```',
+		'- btw: by the way',
+		'## Other',
+		'- z2: second',
+		'- z10: tenth',
+		'',
+	].join('\n');
+	assert.equal(sortConfig(note), [
+		'---',
+		'uuid: x',
+		'---',
+		'# Links',
+		'',
+		'Intro prose stays here.',
+		'- ~~atm: at the moment~~',
+		'\t- a child note of atm',
+		'- Btw: By the way',
+		'- a plain item',
+		'- btw: by the way',
+		'```',
+		'- zz: in a code block',
+		'```',
+		'- wst: [[WanShiTong]]',
+		'## Other',
+		'- z2: second',
+		'- z10: tenth',
+		'',
+	].join('\n'));
+	assert.equal(sortConfig(sortConfig(note)!), null);
+	assert.equal(sortConfig('- a: 1\r\n- b: 2\r\n'), null);
 });

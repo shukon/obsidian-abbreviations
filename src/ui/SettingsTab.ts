@@ -42,6 +42,17 @@ export default class AbbreviationSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
+			.setName('Sort entries')
+			.setDesc('Keep the entries under each heading of the config notes in alphabetical order. ' +
+				'Sorting happens after an abbreviation is expanded, never in a note edited during the last 30 seconds.')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.sortEntries)
+				.onChange(async (value) => {
+					this.plugin.settings.sortEntries = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
 			.setName('New config note')
 			.setDesc('Create a note with a fresh uuid and add it above.')
 			.addButton(button => button

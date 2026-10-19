@@ -40,6 +40,7 @@ export function abbreviationInputHandler(plugin: AbbreviationPlugin) {
 			scrollIntoView: true,
 			userEvent: 'input.abbreviation',
 		});
+		plugin.onExpanded();
 		return true;
 	});
 }

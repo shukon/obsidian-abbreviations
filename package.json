@@ -20,7 +20,7 @@
 		"esbuild": "0.23.0",
 		"obsidian": "latest",
 		"tslib": "2.8.1",
-		"typescript": "5.7.3"
+		"typescript": "7.0.2"
 	},
 	"dependencies": {
 		"@codemirror/view": "^6.26.3",
